@@ -15,7 +15,7 @@ Nothing has been built or device-tested yet (see BUILD_STATUS.md); B and D are t
 
 | Feature | Implementation | U | B | D |
 |---|---|---|---|---|
-| In-app 10-band EQ, presets, profiles, headroom | Media3 audio processor running RBJ biquads | ✓ | — | — |
+| In-app 10-band EQ, presets, profiles, headroom | Media3 audio processor running RBJ biquads | ✓ | ✓ | ✓ |
 | **System-wide EQ** (experimental, opt-in) | Android audio-session protocol + `DynamicsProcessing` (Android 9+) / `Equalizer` (8.x); effect-panel entry; optional legacy global mix | mapping + status ✓ | ✓ | ✓ |
 | **Ambient listening** (phone mic or headset mic) | `AudioRecord` → DC block → ramped gain → limiter → `AudioTrack`, `microphone` foreground service | DSP, routing rules, state machine ✓ | ✓ | ✓ |
 | Ambient gain slider, mute, reset | −30…+12 dB, default −6 dB at every start, ramped | ✓ | ✓ | ✓ |
