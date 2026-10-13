@@ -1,0 +1,212 @@
+package dev.hd450btnc.companion.ui.sound
+
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.spring
+import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.dp
+import dev.hd450btnc.companion.bt.ConnectionStatus
+import dev.hd450btnc.companion.bt.HeadsetState
+import dev.hd450btnc.companion.dsp.EqBands
+import dev.hd450btnc.companion.eq.BuiltInPreset
+import dev.hd450btnc.companion.eq.EqController
+import dev.hd450btnc.companion.eq.EqState
+import dev.hd450btnc.companion.ui.components.ButtonStyle
+import dev.hd450btnc.companion.ui.components.EqCurveView
+import dev.hd450btnc.companion.ui.components.GainFader
+import dev.hd450btnc.companion.ui.components.GlyphKind
+import dev.hd450btnc.companion.ui.components.Notice
+import dev.hd450btnc.companion.ui.components.Overline
+import dev.hd450btnc.companion.ui.components.PresetChip
+import dev.hd450btnc.companion.ui.components.ScreenHeader
+import dev.hd450btnc.companion.ui.components.StatusPill
+import dev.hd450btnc.companion.ui.components.StudioButton
+import dev.hd450btnc.companion.ui.components.StudioCard
+import dev.hd450btnc.companion.ui.components.StudioSwitch
+import dev.hd450btnc.companion.ui.components.Tone
+import dev.hd450btnc.companion.ui.components.NameDialog
+import dev.hd450btnc.companion.ui.theme.Space
+import dev.hd450btnc.companion.ui.theme.Studio
+import dev.hd450btnc.companion.ui.theme.StudioType
+
+data class SoundActions(
+    val selectPreset: (String) -> Unit,
+    val setBand: (Int, Float) -> Unit,
+    val reset: () -> Unit,
+    val setEnabled: (Boolean) -> Unit,
+    val saveProfile: (String) -> Unit,
+    val openHeadphones: () -> Unit,
+)
+
+@Composable
+fun SoundScreen(eq: EqState, headset: HeadsetState, actions: SoundActions, modifier: Modifier = Modifier) {
+    val c = Studio.colors
+    var showSave by rememberSaveable { mutableStateOf(false) }
+
+    // Animated copy of the gains drives the curve so preset switches glide; faders animate themselves.
+    val animated = List(EqBands.COUNT) { i ->
+        animateFloatAsState(eq.gains[i], spring(stiffness = 900f), label = "band$i").value
+    }
+    val preamp = remember(eq.gains, eq.autoHeadroom) { eq.preampDb }
+    val peakDb = remember(eq.gains) { eq.peakDb }
+
+    Column(
+        modifier
+            .fillMaxWidth()
+            .verticalScroll(rememberScrollState())
+            .padding(horizontal = Space.screen)
+            .padding(bottom = Space.xl),
+    ) {
+        ScreenHeader(overline = "Unofficial companion", title = "HD 4.50 BTNC") {
+            val (label, tone) = headerStatus(headset)
+            StatusPill(label, tone, pulsing = !headset.ready, onClick = actions.openHeadphones)
+        }
+
+        StudioCard(contentPadding = androidx.compose.foundation.layout.PaddingValues(Space.l)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Column(Modifier.weight(1f)) {
+                    Overline("Response")
+                    Spacer(Modifier.height(2.dp))
+                    Text(
+                        if (eq.enabled) activeLabel(eq) else "Bypassed",
+                        style = StudioType.heading,
+                        color = if (eq.enabled) c.text else c.textMuted,
+                    )
+                }
+                Column(horizontalAlignment = Alignment.End) {
+                    Overline("Preamp")
+                    Spacer(Modifier.height(2.dp))
+                    Text(
+                        if (!eq.enabled) "—" else if (preamp == 0f) "0.0 dB" else "−${"%.1f".format(-preamp)} dB",
+                        style = StudioType.monoValue,
+                        color = c.textMuted,
+                    )
+                }
+            }
+            Spacer(Modifier.height(Space.m))
+            EqCurveView(animated, eq.enabled, preamp)
+            Spacer(Modifier.height(Space.s))
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                StudioSwitch(checked = eq.enabled, onCheckedChange = actions.setEnabled)
+                Spacer(Modifier.width(Space.m))
+                Text(if (eq.enabled) "EQ on" else "EQ off", style = StudioType.label, color = c.text, modifier = Modifier.weight(1f))
+                StudioButton(
+                    "Reset",
+                    actions.reset,
+                    style = ButtonStyle.GHOST,
+                    glyph = GlyphKind.RESET,
+                    enabled = !eq.isFlat,
+                )
+            }
+        }
+
+        AnimatedVisibility(visible = !eq.autoHeadroom && eq.enabled && peakDb > 0.0) {
+            Notice(
+                "Automatic headroom is off. Boosts of up to +${"%.1f".format(peakDb)} dB can clip loud tracks.",
+                tone = Tone.WARNING,
+                glyph = GlyphKind.WARNING,
+                modifier = Modifier.padding(top = Space.m),
+            )
+        }
+
+        Spacer(Modifier.height(Space.xl))
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Overline("Presets", Modifier.weight(1f))
+            Text(
+                if (eq.activeId == EqState.CUSTOM_ID || BuiltInPreset.byId(eq.activeId) != null) "Edits go to Custom" else "Saved profile",
+                style = StudioType.bodySmall,
+                color = c.textFaint,
+            )
+        }
+        Spacer(Modifier.height(Space.s))
+        Row(
+            Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
+            horizontalArrangement = Arrangement.spacedBy(Space.s),
+        ) {
+            BuiltInPreset.entries.forEach { p ->
+                PresetChip(p.label, eq.activeId == p.id, { actions.selectPreset(p.id) })
+            }
+            PresetChip("Custom", eq.activeId == EqState.CUSTOM_ID, { actions.selectPreset(EqState.CUSTOM_ID) })
+            eq.profiles.forEach { p ->
+                PresetChip(p.name, eq.activeId == p.id, { actions.selectPreset(p.id) })
+            }
+        }
+
+        Spacer(Modifier.height(Space.xl))
+        StudioCard(contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = Space.s, vertical = Space.l)) {
+            Row(Modifier.padding(horizontal = Space.s), verticalAlignment = Alignment.CenterVertically) {
+                Column(Modifier.weight(1f)) {
+                    Overline("10-band EQ")
+                    Spacer(Modifier.height(2.dp))
+                    Text("±12 dB · double-tap a fader to zero", style = StudioType.bodySmall, color = c.textFaint)
+                }
+                StudioButton(
+                    "Save",
+                    { showSave = true },
+                    style = ButtonStyle.OUTLINE,
+                    glyph = GlyphKind.SAVE,
+                    enabled = EqController.canSaveProfile(eq),
+                )
+            }
+            Spacer(Modifier.height(Space.l))
+            Row(Modifier.fillMaxWidth()) {
+                for (i in 0 until EqBands.COUNT) {
+                    GainFader(
+                        label = EqBands.LABELS[i],
+                        gainDb = eq.gains[i],
+                        active = eq.enabled,
+                        onChange = { actions.setBand(i, it) },
+                        modifier = Modifier.weight(1f),
+                    )
+                }
+            }
+        }
+
+        Spacer(Modifier.height(Space.l))
+        Notice(
+            "The EQ processes audio played in this app (your files or the pink-noise reference). " +
+                "Android does not let a regular app reshape other apps' audio reliably, so Spotify, YouTube and others play unchanged.",
+        )
+    }
+
+    if (showSave) {
+        NameDialog(
+            title = "Save profile",
+            confirmLabel = "Save",
+            initial = if (eq.activeId == EqState.CUSTOM_ID) "" else activeLabel(eq),
+            onConfirm = { actions.saveProfile(it); showSave = false },
+            onDismiss = { showSave = false },
+        )
+    }
+}
+
+private fun activeLabel(eq: EqState): String =
+    BuiltInPreset.byId(eq.activeId)?.label ?: eq.activeProfile?.name ?: "Custom"
+
+@Composable
+private fun headerStatus(h: HeadsetState): Pair<String, Tone> = when {
+    !h.ready -> "Checking" to Tone.NEUTRAL
+    h.status == ConnectionStatus.CONNECTED -> "Connected" to Tone.POSITIVE
+    h.status == ConnectionStatus.PERMISSION_REQUIRED -> "Allow access" to Tone.WARNING
+    h.status == ConnectionStatus.BLUETOOTH_OFF -> "Bluetooth off" to Tone.WARNING
+    else -> "Not connected" to Tone.NEUTRAL
+}
