@@ -6,12 +6,10 @@ passthrough), connection and battery status, and honest NoiseGard guidance.
 Developed by Sutikshan Mishra. Not affiliated with or endorsed by Sennheiser.
 
 Native Android · Kotlin · Jetpack Compose · Material 3 · AndroidX Media3. minSdk 26 (Android 8.0), target 35.
-Package ID is unchanged (`dev.hd450btnc.companion`, debug: `…companion.debug`), so it updates in place.
 
 ## Features and verification status
 
 Legend : **U**: unit-tested logic · **B**: Android build verified · **D**: tested on a device.
-Nothing has been built or device-tested yet (see BUILD_STATUS.md); B and D are therefore open for every row.
 
 | Feature | Implementation | U | B | D |
 |---|---|---|---|---|
