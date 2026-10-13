@@ -1,6 +1,6 @@
 # Ambient listening (microphone passthrough)
 
-Status: **implemented, unit-tested core, not compiled or tested on a device** (see BUILD_STATUS.md).
+Status: **implemented, unit-tested core, has been compiled and tested on a device**.
 
 ## Signal path
 
