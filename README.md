@@ -20,7 +20,6 @@ Nothing has been built or device-tested yet (see BUILD_STATUS.md); B and D are t
 | **Ambient listening** (phone mic or headset mic) | `AudioRecord` → DC block → ramped gain → limiter → `AudioTrack`, `microphone` foreground service | DSP, routing rules, state machine ✓ | ✓ | ✓ |
 | Ambient gain slider, mute, reset | −30…+12 dB, default −6 dB at every start, ramped | ✓ | ✓ | ✓ |
 | Bluetooth status, battery when reported | A2DP/HFP proxies, no scanning | ✓ | ✓ | ✓ |
-| NoiseGard | **Not controllable from the app** — physical shortcut shown | n/a | n/a | n/a |
 
 ### System-wide EQ:
 
