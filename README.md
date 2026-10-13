@@ -1,4 +1,4 @@
-# CapTune ReVanced : unofficial HD 4.50 BTNC companion for Android
+# CapTune ReVanced : unofficial HD 4.50 BTNC companion for Android v1.0.0-beta.1
 
 An unofficial, community-built companion for the **Sennheiser HD 4.50 BTNC**: a real 10-band EQ with presets
 and saved profiles, optional system-wide EQ for apps that support it, ambient listening (microphone
